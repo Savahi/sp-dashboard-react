@@ -1,14 +1,17 @@
 import React, { Component } from 'react';
 import { Rnd } from 'react-rnd';
 import DLineChart from './DLineChart';
+import DLinePlot from './DLinePlot';
 import DBarChart from './DBarChart';
 import DBarRLChart from './DBarRLChart';
+import DAreaChart from './DAreaChart';
 import DPieChart from './DPieChart';
 import DDialGaugeChart from './DDialGaugeChart';
 import DTable from './DTable';
 import DText from './DText';
+import DImage from './DImage';
 import styles from './../css/dwindow.css'; 
-
+import Settings from './Settings.js';
 
 class DWindow extends React.Component {
 	constructor(props) {
@@ -43,11 +46,17 @@ class DWindow extends React.Component {
 		if( this.props.chart.settings.type === 'lineChart' ) {
 			chartJSX = <DLineChart width={this.state.width} height={this.state.height} chart={this.props.chart} />;
 		}
+		else if( this.props.chart.settings.type === 'linePlot' ) {
+			chartJSX = <DLinePlot width={this.state.width} height={this.state.height} chart={this.props.chart} />;
+		}
 		else if( this.props.chart.settings.type === 'barChart' ) {
 			chartJSX = <DBarChart width={this.state.width} height={this.state.height} chart={this.props.chart} />;
 		}
 		else if( this.props.chart.settings.type === 'barRLChart' ) {
 			chartJSX = <DBarRLChart width={this.state.width} height={this.state.height} chart={this.props.chart} />;
+		}
+		else if( this.props.chart.settings.type === 'areaChart' ) {
+			chartJSX = <DAreaChart width={this.state.width} height={this.state.height} chart={this.props.chart} />;
 		}
 		else if( this.props.chart.settings.type === 'pieChart' ) {
 			chartJSX = <DPieChart width={this.state.width} height={this.state.height} chart={this.props.chart} />;
@@ -62,6 +71,9 @@ class DWindow extends React.Component {
 		else if( this.props.chart.settings.type === 'text' ) {
 			chartJSX = <DText width={this.state.width} height={this.state.height} text={this.props.chart}
 				fontSizeScale={this.state.fontSizeScale} />;
+		}
+		else if( this.props.chart.settings.type === 'image' ) {
+			chartJSX = <DImage width={this.state.width} height={this.state.height} image={this.props.chart} />;
 		}
 		else {
 			return( <div>INVALID CHART TYPE</div> ); 
@@ -83,7 +95,10 @@ class DWindow extends React.Component {
 		if( 'hideTitle' in this.props.chart.settings && this.props.chart.settings.hideTitle ) {
 			titleStyle = { display: this.state.mouseOver ? 'block' : 'none' };
 		}
-		
+		titleStyle.height = Settings.windowTitleHeight;
+		titleStyle.maxHeight = Settings.windowTitleHeight;
+		titleStyle.overflow = 'hidden';
+
 		return (
 			<Rnd key={'win.'+this.props.chart.settings.id} className={styles.window} ref={c => { this.rnd = c; }} 
 				size = {{ width: this.state.width, height: this.state.height }} 
@@ -105,7 +120,8 @@ class DWindow extends React.Component {
 					{controlsJSX}
 					<div className={styles.titleText}>{this.props.chart.settings.title}</div>
 				</div>
-				<div style={{ width: this.state.width, height: this.state.height}} className={styles.content}>				
+				<div className={styles.content}
+					style={{ top: Settings.windowTitleHeight, width: this.state.width, height: this.state.height - Settings.windowTitleHeight}} >				
 					{chartJSX}
 				</div>
 			</Rnd>

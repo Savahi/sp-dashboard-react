@@ -1,7 +1,7 @@
 import React, { Component } from 'react';
 import styles from './../css/app.css'; 
 import DWindow from './DWindow';
-import { calcChartWindowsCoords, tileChartWindowsCoords, pctToWindowX, pctToWindowY, setCookie, getCookie } from './helpers'
+import { getFakeData, convertSourceData, calcChartWindowsCoords, tileChartWindowsCoords, pctToWindowX, pctToWindowY, setCookie, getCookie } from './helpers'
 import Settings from './Settings';
 
 const _minChildWindowZIndex = 1000;
@@ -15,14 +15,15 @@ class App extends React.Component {
 			childRefs: [],
 			lang: 'en',
 			userName: String.fromCharCode(8230),
-			title: String.fromCharCode(8230)
+			title: String.fromCharCode(8230),
+			projectVersion: String.fromCharCode(8230),
+			projectTime: String.fromCharCode(8230)
 		};
 
 		this.changeLang = this.changeLang.bind(this);
 		this.positionWindows = this.positionWindows.bind(this);
 		this.bringFront = this.bringFront.bind(this);
 	}
-
 
 	positionWindows( mode ) {
 		if( this.state.data === null || !('charts' in this.state.data) || this.state.data.charts.length === 0 ) {
@@ -50,7 +51,6 @@ class App extends React.Component {
 			this.setState( { childZIndexes:z } );
 		}
 	}
-
 
 	changeLang( e ) {
 		for( let i = 0 ; i < Settings.langs.length ; i++ ) {
@@ -127,6 +127,16 @@ class App extends React.Component {
 					]
 				},
 				{ 
+					settings: { id:35, type: 'linePlot', title: 'A Line Plot', 
+						xPct:42, yPct:22, widthPct:40, heightPct:50 }, 
+					charts: { 'Rate': { stroke:'#cf7fef' }, 'pv': { stroke:'#7fceef' }, 'amt': { stroke: '#cfef7f' } },
+					data: { 
+						'Rate': [ {x: 100, value: 400}, {x: 200, value: 500}, {x: 220, value: 390}, {x: 300, value: 402} ],
+						'pv': [ {x: 110, value: 300}, {x: 220, value: 350}, {x: 280, value: 390}, {x: 300, value: 420} ],
+						'amt': [ {x: 90, value: 330}, {x: 180, value: 340}, {x: 250, value: 320}, {x: 310, value: 350} ],
+					}
+				},
+				{ 
 					settings: { id:40, type: 'barChart', title: 'A Bar Chart', 
 						xPct:50, yPct:20, widthPct:40, heightPct:50 }, 
 					charts: {  'Rate': { fill:'#cf7fef' }, 'pv': { fill:'#7fceef' }, 'amt': { fill: '#cfef7f' } },
@@ -167,27 +177,36 @@ class App extends React.Component {
 				}
 			]
 		};
-
-		if( data === null ) {
-			this.setState( { data: { 'error': Settings.failedToLoadText[this.state.lang] } } );
-			return;
-		}
-		if( !('charts' in data) || data.charts.length === 0 ) {
-			this.setState( { data: { 'error': Settings.failedToParseText[this.state.lang] } } );
-			return;
-		}
-
-		let z = [];
-		let r = [];
-		for( let i = 0 ; i < data.charts.length ; i++ ) {
-			z.push( _minChildWindowZIndex + i );
-			r.push( React.createRef() );
-		}
-		this.setState( { data: data, childZIndexes: z, childRefs: r } );
+		
+		fetch(Settings.htmlDirectory + '/data.php').then(data=> data.json()).then( 
+			(data) => { 
+				//let sourceData = getFakeData();
+				data = convertSourceData(data);
+				this.setState({ lang: data.lang, title: data.title, projectVersion: data.projectVersion, 
+					projectTime: data.projectTime, userName: getCookie('userName') });
+		
+				if( data === null ) {
+					this.setState( { data: { 'error': Settings.failedToLoadText[this.state.lang] } } );
+					return;
+				}
+				if( !('charts' in data) || data.charts.length === 0 ) {
+					this.setState( { data: { 'error': Settings.failedToParseText[this.state.lang] } } );
+					return;
+				}
+		
+				let z = [];
+				let r = [];
+				for( let i = 0 ; i < data.charts.length ; i++ ) {
+					z.push( _minChildWindowZIndex + i );
+					r.push( React.createRef() );
+				}
+				this.setState( { data: data, childZIndexes: z, childRefs: r } );
+		
+			} 
+		).catch( function(e) { alert(e); } );
 	}
 
-	render() {
-		
+	render() {		
 		var header = (		
 			<div className={styles.headerContainer}>
 				<div className={styles.headerControls}>
@@ -195,7 +214,12 @@ class App extends React.Component {
 					<span onClick={ (e) => this.positionWindows(1) }>{ String.fromCharCode(8634) }</span>
 					<span onClick={ (e) => this.positionWindows(2) }>{ String.fromCharCode(9783) }</span>
 				</div>
-				<div className={styles.headerTitle}>{ this.state.title }</div>
+				<div className={styles.headerTitle}>
+					{ this.state.title }
+					<div className={styles.headerDetails}>
+						{Settings.versionText[this.state.lang]} {this.state.projectVersion} :: {this.state.projectTime} 
+					</div>
+				</div>
 				<div className={styles.headerUser}>{ this.state.userName } :: { Settings.exitText[this.state.lang] }</div>
 			</div>
 		);

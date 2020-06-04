@@ -50,9 +50,16 @@
 	width: 65%;
 	float: left;
 	max-height: 34px;
-	font-size: 12px;
+	font-size: 13px;
 	overflow: hidden;
 	text-align:center;
+}
+
+.headerDetails {
+	max-width: 100%;
+	overflow: hidden;
+	text-align: center;
+	font-size: 12px;
 }
 
 .headerUser {

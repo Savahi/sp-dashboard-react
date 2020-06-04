@@ -14,8 +14,14 @@ class DText extends React.Component {
 
 	render() {
 		let style = { minWidth: this.props.width, maxWidth: this.props.width };
-		if( this.props.fontSizeScale != 0 ) {
+		if( typeof( this.props.text.settings.fontSize ) !== 'undefined' ) {
+			style.fontSize = this.props.text.settings.fontSize + this.props.fontSizeScale + 'px';
+		}
+		else if( this.props.fontSizeScale != 0 ) {
 			style.fontSize = 100 + this.props.fontSizeScale*5 + '%';
+		}
+		if( typeof( this.props.text.settings.fontFamily ) !== 'undefined' ) {
+			style.fontFamily = this.props.text.settings.fontFamily;
 		}
 		return (
 			<div style={style} className={styles.container}>

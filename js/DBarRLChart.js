@@ -21,14 +21,16 @@ class DBarRLChart extends React.Component {
 			let domain = calculateYDomain( this.props.chart.data );
 			if( orientation === 'vertical' ) {
 				charts.push( <XAxis key={'xaxis.'+stt.id} domain={domain} type="number" style={{fontSize:'12px'}} /> );
-	  			charts.push( <YAxis key={'yaxis.'+stt.id} dataKey="name" type="category" style={{fontSize:'12px'}} /> ); 
+	  			charts.push( <YAxis key={'yaxis.'+stt.id} dataKey="name" type="category" axisLine={false} style={{fontSize:'12px'}} /> ); 
 				charts.push( <ReferenceLine key={'refline.'+stt.id} x={0} stroke={stt.referenceLineColor} /> );
 			} else {	
 	  			charts.push( <XAxis key={'xaxis.'+stt.id} dataKey="name" type="category" style={{fontSize:'12px'}} /> ); 
 				charts.push( <YAxis key={'yaxis.'+stt.id} domain={domain} type="number" style={{fontSize:'12px'}} /> );
 				charts.push( <ReferenceLine key={'refline.'+stt.id} y={0} stroke={stt.referenceLineColor} /> );
 			}
-  			charts.push( <Tooltip key={'tooltip.'+stt.id} /> );
+			charts.push( <Tooltip key={'tooltip.'+stt.id} 
+			  	formatter = { (value, name, props) => { return [value, props.payload.name] } } 
+				labelFormatter = { () => { return null; } } /> );
 
 			let colorMapping = null;
 			let colors = this.props.chart.settings.colors;
