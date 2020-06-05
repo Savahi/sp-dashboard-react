@@ -17,7 +17,7 @@ class DImage extends React.Component {
 		let imgStyle = { 
 			width: this.props.width, height: this.props.height - Settings.windowTitleHeight, 
 			left:0, top: Settings.windowTitleHeight+'px' };
-		let url = window.location.href + "/" + Settings.filesDirectory + "/" + this.props.image.fileName;
+		let url = window.location.href + "/" + Settings.filesDirectory + this.props.image.fileName;
 		return (
 				<img src={url} style={imgStyle} />
 		);

@@ -1,17 +1,4 @@
 import Settings from './Settings';
-/*
-charts: [
-	{ 
-		settings: { id:35, type: 'linePlot', title: 'A Line Plot', 
-			xPct:42, yPct:22, widthPct:40, heightPct:50 }, 
-		charts: { 'Rate': { stroke:'#cf7fef' }, 'pv': { stroke:'#7fceef' }, 'amt': { stroke: '#cfef7f' } },
-		data: { 
-			'Rate': [ {x: 100, value: 400}, {x: 200, value: 500}, {x: 220, value: 390}, {x: 300, value: 402} ],
-			'pv': [ {x: 110, value: 300}, {x: 220, value: 350}, {x: 280, value: 390}, {x: 300, value: 420} ],
-			'amt': [ {x: 90, value: 330}, {x: 180, value: 340}, {x: 250, value: 320}, {x: 310, value: 350} ],
-		}
-	},
-*/
 
 export function convertSourceData(sourceData) {
 	if( !'DashPages' in sourceData )
@@ -31,11 +18,18 @@ export function convertSourceData(sourceData) {
 			let chartsData = null;
 			let d = dashitems[idashitem];
 			if( d.Type == 'diagram') {
-				if( d.SubType == 'graphs' && (d.Form == 'line') ) {
+				// A line chart
+				if( d.SubType == 'graphs' && (d.Form === 'line' || (d.Form === 'bar' && d.Graphs.length > 1) ) ) {
 					chartsData = {};
 					chartsCharts = {};
+					let xAxisKey = 'x';
+					let yAxisKey = 'value';
 					chartsSettings = { id: idashpage*100+idashitem, page:idashpage, type: 'linePlot', title: d.Title, 
-						startYAtZero: (d.FromZero == 'yes') ? true : false, 
+						startYAtZero: ( typeof(d.FromZero) !== 'undefined' && d.FromZero == 'yes') ? true : false,
+						lineType: (d.Graphs.length > 1) ? 'stepAfter' : undefined, 
+						xAxisKey: xAxisKey, yAxisKey:yAxisKey, 
+						xAxisType: ( typeof(d.XType) !== 'undefined') ? d.XType : 'date', 
+						decimalPlacesAfterDotAtAxis: (typeof(d.Decimals) !== 'undefined') ? d.Decimals : undefined,
 						xPct: d.Position[0], yPct: d.Position[1], 
 						widthPct: d.Position[2] - d.Position[0], heightPct: d.Position[3] - d.Position[1] };
 					for( let igraph = 0 ; igraph < d.Graphs.length ; igraph++ ) {
@@ -43,35 +37,23 @@ export function convertSourceData(sourceData) {
 						chartsCharts[graph.Name] = { stroke: graph.Color };
 						chartsData[graph.Name] = [];
 						for( let i = 0 ; i < graph.Array.length ; i++ ) {
-							chartsData[graph.Name].push( { x: graph.Array[i][0], value: graph.Array[i][1] } );
+							let toPush = {};
+							toPush[xAxisKey] = graph.Array[i][0];
+							toPush[yAxisKey] = graph.Array[i][1];
+							chartsData[graph.Name].push( toPush );
+							//chartsData[graph.Name].push( { x: graph.Array[i][0], value: graph.Array[i][1] } );
 						}
 					}
 				} 
-				/*
-					settings: { id:30, type: 'lineChart', title: 'A Line Chart', 
-						xPct:2, yPct:2, widthPct:40, heightPct:50 }, 
-					charts: { 'Rate': { stroke:'#cf7fef' }, 'pv': { stroke:'#7fceef' }, 'amt': { stroke: '#cfef7f' } },
-					data: [ 
-						{name: 'Section A', 'Rate': 400, pv: 300, amt: 300}, {name: 'Section B', 'Rate': 500, pv: 400, amt: 300},
-						{name: 'Section C', 'Rate': 400, pv: 500, amt: 500}, {name: 'Section D', 'Rate': 600, pv: 400, amt: 600},
-					]
-					{
-						"Type": "diagram", "SubType": "graphs", "Form": "bar",
-						"Position": [100, 100, 500, 200], "Title": "Pipes Quantity by Months",
-						"Graphs": [
-							{
-								"Name": "Pipes", "Color": "#ff00ff",
-								"Array": [ [1.5, 10.3], [3.1, 15.7], [4, 34], [5, 0] ]
-            				}
-          				]
-        			},
-
-				*/
 				else if( d.SubType == 'graphs' && (d.Form == 'bar') ) {
 					chartsData = {};
 					chartsCharts = {};
+					let xAxisKey = 'x';
 					chartsSettings = { id: idashpage*100+idashitem, page:idashpage, type: 'areaChart', title: d.Title, 
-						startYAtZero: (d.FromZero == 'yes') ? true : false, 
+					startYAtZero: ( typeof(d.FromZero) !== 'undefined' && d.FromZero == 'yes') ? true : false, 
+						areaType: 'stepAfter', 
+						xAxisKey: xAxisKey, xAxisType: ( typeof(d.XType) !== 'undefined') ? d.XType : 'date', 
+						decimalPlacesAfterDotAtAxis: (typeof(d.Decimals) !== 'undefined') ? d.Decimals : undefined,
 						xPct: d.Position[0], yPct: d.Position[1], 
 						widthPct: d.Position[2] - d.Position[0], heightPct: d.Position[3] - d.Position[1] };
 					for( let igraph = 0 ; igraph < d.Graphs.length ; igraph++ ) {
@@ -80,7 +62,7 @@ export function convertSourceData(sourceData) {
 						chartsData = [];
 						for( let i = 0 ; i < graph.Array.length ; i++ ) {
 							let toPush = {};
-							toPush.name = graph.Array[i][0];
+							toPush[xAxisKey] = graph.Array[i][0];
 							toPush[graph.Name] = graph.Array[i][1];
 							chartsData.push( toPush );							
 							//chartsData.push( { name: graph.Array[i][0], value: graph.Array[i][1] } );
@@ -101,25 +83,6 @@ export function convertSourceData(sourceData) {
 						chartsSettings.colors.push( item[2] );
 					}
 				} 
-				/*
-					settings: { id:60, type: 'barRLChart', title: 'A Tornado Chart (Reference Line BC)', 
-						xPct:10, yPct:10, widthPct:40, heightPct:50,
-						referenceLineColor: '#af8f8f',
-						colors: ['#8fff8f', '#8fff8f', '#8fff8f', '#ff8f8f', '#ff8f8f'] }, 
-					charts: { 'values': { stroke:'#cf7fef', name:'Indicators' } },
-					data: [ 
-						{name: 'Indicators 1', 'values': 200}, {name: 'Indicators 2', 'values': 100},
-						{name: 'Indicators 3', 'values': 10}, {name: 'Indicators 4', 'values': -100},
-						{name: 'Indicators 4', 'values': -200}
-					]
-					"Type": "diagram", "SubType": "tornado",
-					"Position": [100, 300, 500, 400], "Title": "Resources Quantity",
-					"Graphs": [
-					  {
-						"Array": [ [7, "res1", "#ff00ff"], [14, "res2", "#ffff00"], [19, "res3", "#00ffff"] ]
-					  }
-					]
-				*/
 				else if( d.SubType === 'tornado' ) {
 					chartsSettings = { id: idashpage*100+idashitem, page:idashpage, type: 'barRLChart', title: d.Title, 
 						xPct: d.Position[0], yPct: d.Position[1], 
@@ -160,135 +123,75 @@ export function convertSourceData(sourceData) {
 	return data;
 }
 
-export function getFakeData() {
-	return {
-		"Lang": "ru",
-		"Project": {"Code": "cpc", "Version": 1, "Name": "Caspian Pipeline Construction", "CurTime": "10.10.99  08:00"},
-		"DashPages": 
-		[
-			{
-				"Name": "Page 0",
-				"DashItems": [
-					{
-						"Type": "text",
-						"Position": [100, 100, 500, 200],
-						"Title": "Summary",
-						"Body": "Это текст: прокладка трубопровода, строительство, кровля, возведение зданий и сооружений",
-						"FontFamily": "Arial", "FontSize": 20
-					},			  
-				  	{
-						"Type": "diagram",	"SubType": "graphs",
-						"Position": [10, 10, 60, 60], "Title": "Pipes Quantity by Months",
-						"Graphs": [
-							{
-								"Name": "Pipes", "Color": "#ff00ff",
-								"Array": [ [1.5, 10], [3.1, 15], [4, 34], [5, 21], [6, 19], [7, 25] ]
-					  		}
-						]
-				  	},
-				  	{
-					"Type": "diagram", "SubType": "pie",
-					"Position": [30, 30, 90, 90], "Title": "Resources Quantity",
-					"Graphs": [
-					  {
-						"Array": [ 
-							[7, "Показатель 1", "#ff77ff"], [14, "Показатель 2", "#ff7777"], 
-							[19, "Показатель 3", "#77ffff"], [ 9, "Показатель 4", "#7777ff"] 
-						]
-					  }
-					]
-				  	},
-				  	{
-						"Type": "diagram", "SubType": "tornado",
-						"Position": [10, 30, 60, 90], "Title": "Resources Quantity",
-						"Graphs": [
-							{
-								"Array": [ 
-									[-7, "Парам. 1", "#ff7777"], 
-									[14, "Парам. 2", "#77dd77"], 
-									[19, "Парам. 3", "#ffee77"], 
-									[21, "Парам. 4", "#ffff77"] 
-								]
-					  		}
-						]
-				  	}
-				]
-			},		  
-			{
-			"Name": "Page 1",
-			"DashItems": [
-				{
-				"Type": "diagram", "SubType": "graphs", "Position": [10, 10, 80, 80], "Title": "Pipes Quantity by Months",
-				"Graphs": [
-					{
-					"Name": "graph 1", "Color": "#ff00ff",
-					"Array": [ [1.5, 10.3], [3.1, 15.7], [4, 34] ]
-					},
-					{
-					"Name": "graph 2", "Color": "#0000ff",
-					"Array": [ [2.5, 20.3], [4.1, 17.7], [5, 63] ]
-					}
-				]
-				},
-				{
-				"Type": "diagram", "SubType": "graphs", "Position": [40, 40, 90, 90],
-				"Title": "Resources Quantity by Months",
-				"Graphs": [
-					{
-					"Name": "graph 3", "Color": "#ff00ff",
-					"Array": [ [1.5, 10.3], [3.1, 15.7], [4, 34] ]
-					},
-					{
-					"Name": "graph 4", "Color": "#0000ff",
-					"Array": [ [2.5, 20.3], [4.1, 17.7], [5, 63] ]
-					}
-				]
-				}
-			]
-			},
-			{
-				"Name": "Page 1",
-				"DashItems": [
-					{
-					"Type": "diagram", "SubType": "graphs", "Position": [10, 10, 70, 70], "Title": "Pipes Quantity by Months",
-					"Graphs": [
-						{
-						"Name": "graph 1", "Color": "#ff00ff",
-						"Array": [ [1.5, 10.3], [3.1, 15.7], [4, 34] ]
-						},
-						{
-						"Name": "graph 2", "Color": "#0000ff",
-						"Array": [ [2.5, 20.3], [4.1, 17.7], [5, 63] ]
-						}
-					]
-					},
-					{
-					"Type": "diagram", "SubType": "graphs", "Position": [40, 40, 90, 90],
-					"Title": "Resources Quantity by Months",
-					"Graphs": [
-						{
-						"Name": "graph 3", "Color": "#ff00ff",
-						"Array": [ [1.5, 10.3], [3.1, 15.7], [4, 34] ]
-						},
-						{
-						"Name": "graph 4", "Color": "#0000ff",
-						"Array": [ [2.5, 20.3], [4.1, 17.7], [5, 63] ]
-						}
-					]
-					}
-				]
-			},
-		]
-	};
-}
 
+export function calculateXDomain( data, marginFactor=0.1, key='x' ) {
+	let r = [0,0];
+	let lowest=null, highest=null;
+
+	if( marginFactor === null ) {
+		marginFactor=Settings.domainMarginFactor;
+	}
+
+	if( !Array.isArray(data) ) { 	// Ensuring the type is valid
+		return null;
+	}
+	if( data.length == 0 ) { 		// Checking non-empty
+		return null;
+	}
+	if( Array.isArray(data[0]) ) { 	// Is array of arrays?
+		for( let d = 0 ; d < data.length ; d++ ) {
+			for( let i = 0 ; i < data[d].length ; i++ ) {
+				if( key in data[d][i] ) {
+					let v = data[d][i][key];
+					if( typeof(v) !== 'number') {
+						continue;
+					}
+					if( lowest === null ) {
+						lowest = v;
+						highest = v;
+						continue;
+					}
+					if( v < lowest ) 
+						lowest = v;
+					if( v > highest )
+						highest = v;
+				}
+			}
+		}		                 	
+	} else {
+		for( let i = 0 ; i < data.length ; i++ ) {
+			if( key in data[i] ) {
+				let v = data[i][key];
+				if( typeof(v) !== 'number') {
+					continue;
+				}
+			if( lowest === null ) {
+					lowest = v;
+					highest = v;
+					continue;
+				}
+				if( v < lowest )
+					lowest = v;
+				if( v > highest )
+					highest = v;
+			}
+		}
+	}	
+	if( lowest === null || highest === null ) {
+		return null;
+	}
+	let margin = (highest - lowest) * marginFactor;
+	r[0] = lowest - margin;
+	r[1] = highest + margin;
+	return r;
+};
 
 export function calculateYDomain( dataSource, marginFactor=0.1, excludeKey='name', includeKey=null ) {
 	let r = [0,0];
 	let lowest=null, highest=null;
 
 	if( marginFactor === null ) {
-		marginFactor=0.1;
+		marginFactor=Settings.domainMarginFactor;
 	}
 
 	let data=[];
@@ -518,4 +421,27 @@ export function getCookie( cname, type='string' ) {
 		}
 	}
 	return null;
+}
+
+
+export function secondsToDate( seconds ) {
+	let date = new Date(seconds * 1000);
+	let year = date.getFullYear();
+	if( year >= 2000 ) {
+		year -= 2000;
+		if( year < 10 ) {
+			year = '0' + year;
+		}
+	} else {
+		year -= 1900;		
+	}
+	let month = date.getMonth() + 1;
+	if( month < 10 ) {
+		month = '0' + month;
+	}
+	let day = date.getDate();
+	if( day < 10 ) {
+		day = '0' + day;
+	}
+	return day + '-' + month + '-' + year;
 }
