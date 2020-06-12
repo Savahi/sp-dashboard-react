@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, Legend, CartesianGrid, ReferenceLine } from 'recharts';
 import { calculateXDomain, calculateYDomain, secondsToDate } from './helpers'
 import Settings from './Settings';
 
@@ -26,9 +26,10 @@ class DAreaChart extends React.Component {
 			let xFormatter = undefined;
 			if( typeof(stt.xAxisType) !== 'undefined' && stt.xAxisType === 'date' ) 	// If refer min Y to zero... 
 				xFormatter = function(e) { return secondsToDate(e); }; 			
+			let xAxisType = typeof((stt.xAxisType) === 'undefined' || stt.xAxisType === 'date' ) ?  'number' : stt.xAxisType; 
+			let xAxisKey = (typeof(stt.xAxisKey)!=='undefined') ? stt.xAxisKey : 'x';	
 			charts.push( <XAxis key={'xaxis'+stt.id} allowDuplicatedCategory={false} 
-				dataKey={(typeof(stt.xAxisKey)!=='undefined') ? stt.xAxisKey : 'name'} 
-				type="number" style={{fontSize: Settings.axisFontSize}} 
+				dataKey={xAxisKey} type={xAxisType} style={{fontSize: Settings.axisFontSize+'px'}} 
 				domain={xdomain!==null ? xdomain: undefined} 
 				tickFormatter={xFormatter} /> );
 
@@ -39,30 +40,27 @@ class DAreaChart extends React.Component {
 			if( stt.decimalPlacesAfterDotAtAxis !== undefined ) {
 				yFormatter = function(e) { return e.toFixed(stt.decimalPlacesAfterDotAtAxis); };
 			}
-			charts.push( <YAxis key={'yaxis'+stt.id} style={{fontSize:Settings.axisFontSize}} 
+			charts.push( <YAxis key={'yaxis'+stt.id} style={{fontSize:Settings.axisFontSize+'px'}} 
 				domain={(ydomain!==null) ? ydomain : undefined } 
 				tickFormatter={yFormatter} /> );
 
 			charts.push( <Tooltip key={'tooltip'+stt.id}  labelFormatter={ xFormatter } /> );
-			/*
-			charts.push( <XAxis key={'xaxis'+stt.id} dataKey="name" style={{fontSize:'12px'}} /> ); 
-			let ydomain = calculateYDomain( this.props.chart.data );
-			ydomain[0] = 0;
-			charts.push( <YAxis key={'yaxis'+stt.id} domain={ydomain} style={{fontSize:'12px'}} /> );
-			charts.push( <Tooltip key={'tooltip'+stt.id}  /> );
-			*/
-			charts.push( <Legend key={'legend'+stt.id}  style={{fontSize:Settings.legendFontSize}} /> );
+			charts.push( <Legend key={'legend'+stt.id}  style={{fontSize:Settings.legendFontSize+'px'}} /> );
 			for( let i in keys ) {
 				let k = keys[i];
 				charts.push( <Area type={(typeof(stt.areaType) !== 'undefined') ? stt.areaType : "monotone"} 
 					key={'line.'+stt.id+'.'+i} dataKey={k} 
 					stroke={this.props.chart.charts[k].stroke} /> );
 			}
-			let margin = { top:10, left:0, right:20, bottom:30 };
-			let style= { fontSize:'12px', color: '#7f7f7f' };	
+			let referenceLine = ('referenceLine' in stt) ? 
+				(<ReferenceLine x={stt.referenceLine} stroke='#af4f4f' strokeDasharray={"2 4"} />) : null;
+			let margin = { top:10, left:30, right:0, bottom:30 };
+			let style= { fontSize:Settings.chartFontSize+'px', color: '#7f7f7f' };	
 			return (
-				<AreaChart key={'linechart.'+stt.id} width={this.props.width} height={this.props.height} data={this.props.chart.data} style={style} margin={margin}>
+				<AreaChart key={'linechart.'+stt.id} width={this.props.width} height={this.props.height} 
+				 data={this.props.chart.data} style={style} margin={margin}>
 					{charts}
+					{referenceLine}
 				</AreaChart>
 			);
 		} else {

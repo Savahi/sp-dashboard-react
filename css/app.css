@@ -27,7 +27,7 @@
 }
 
 .headerControls {
-	width: 15%;
+	width: 20%;
 	float: left;
 	padding: 4px 0px 0px 0px;
 	height: 34px;
@@ -36,8 +36,14 @@
 	overflow: hidden;
 	text-align:left;
 }
+@media print {
+	.headerControls {
+		visibility:hidden;
+	}
+}
 
 .headerControls span {
+	display:inline;
 	cursor: pointer;
 	border: 1px dotted lightgray;
 	border-radius: 4px;
@@ -47,7 +53,7 @@
 }
 
 .headerTitle {
-	width: 65%;
+	width: 60%;
 	float: left;
 	max-height: 34px;
 	font-size: 13px;
@@ -71,6 +77,11 @@
 	font-size: 12px;
 	overflow: hidden;
 	text-align:right;
+}
+@media print {
+	.headerUser {
+		visibility:hidden;
+	}
 }
 
 .headerUser a {

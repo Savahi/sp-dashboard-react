@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, CartesianGrid, ReferenceLine } from 'recharts';
 import { calculateXDomain, calculateYDomain, secondsToDate } from './helpers'
 import Settings from './Settings'
 
@@ -28,26 +28,27 @@ class DLinePlot extends React.Component {
 			let xFormatter = undefined;
 			if( typeof(stt.xAxisType) !== 'undefined' && stt.xAxisType === 'date' ) 	// If refer min Y to zero... 
 				xFormatter = function(e) { return secondsToDate(e); }; 			
+			let xAxisType = typeof((stt.xAxisType) === 'undefined' || stt.xAxisType === 'date' ) ?  'number' : stt.xAxisType; 
+			let xAxisKey = (typeof(stt.xAxisKey)!=='undefined') ? stt.xAxisKey : 'x';	
 			charts.push( <XAxis key={'xaxis'+stt.id} allowDuplicatedCategory={false}
-				dataKey={(typeof(stt.xAxisKey)!=='undefined') ? stt.xAxisKey : 'name'} 
-				type="number" style={{fontSize: Settings.axisFontSize}} 
+				dataKey={xAxisKey} type={xAxisType} style={{fontSize: Settings.axisFontSize+'px'}} 
 				domain={xdomain!==null ? xdomain: undefined} 
 				tickFormatter={xFormatter} /> );
 
-			let ydomain = calculateYDomain( data, null, null, 'value' );
+			let ydomain = calculateYDomain( data, 0, null, 'value' );
 			if( typeof(stt.startYAtZero) !== 'undefined' && stt.startYAtZero && ydomain !== null ) 	// If refer min Y to zero... 
 				ydomain[0] = 0;				
 			let yFormatter = undefined;
 			if( typeof(stt.decimalPlacesAfterDotAtAxis) !== 'undefined' ) {
 				yFormatter = function(e) { return e.toFixed(stt.decimalPlacesAfterDotAtAxis); };
 			}
-			charts.push( <YAxis key={'yaxis'+stt.id} style={{fontSize:Settings.axisFontSize}} 
-				domain={(ydomain!==null) ? ydomain : undefined } 
+			charts.push( <YAxis key={'yaxis'+stt.id} style={{fontSize:Settings.axisFontSize+'px'}} 
+				domain={(ydomain!==null) ? ydomain : undefined }
 				tickFormatter={yFormatter} /> );
 
 			charts.push( <Tooltip key={'tooltip'+stt.id}  labelFormatter={ xFormatter } /> );
 
-			charts.push( <Legend key={'legend'+stt.id}  style={{fontSize:Settings.legendFontSize}} /> );
+			charts.push( <Legend key={'legend'+stt.id}  style={{fontSize:Settings.legendFontSize+'px'}} /> );
 			for( let i in keys ) {
 				let k = keys[i];
 				charts.push( <Line key={'line.'+stt.id+'.'+i} 
@@ -56,11 +57,14 @@ class DLinePlot extends React.Component {
 					name={k} data={this.props.chart.data[k]}
 					stroke={this.props.chart.charts[k].stroke} /> );
 			}
-			let margin = { top:10, left:0, right:20, bottom:30 };
-			let style= { fontSize:'12px', color: '#7f7f7f' };	
+			let referenceLine = ('referenceLine' in stt) ? 
+				(<ReferenceLine x={stt.referenceLine} stroke='#af4f4f' strokeDasharray={"2 4"} />) : null;
+			let margin = { top:10, left:30, right:0, bottom:30 };
+			let style= { fontSize:Settings.chartFontSize+'px', color: '#7f7f7f' };	
 			return (
 				<LineChart key={'linechart.'+stt.id} width={this.props.width} height={this.props.height} style={style} margin={margin}>
 					{charts}
+					{referenceLine}
 				</LineChart>
 			);
 		} else {

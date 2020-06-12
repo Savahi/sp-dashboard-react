@@ -8,34 +8,50 @@ class App extends React.Component {
 	constructor(props) {
 		super(props);
 		this.state = { 
-			data: null,
+			data: { 'error': '...'},
 			childZIndexes: [],
 			childRefs: [],
 			lang: 'en',
 			userName: String.fromCharCode(8230),
 			title: String.fromCharCode(8230),
 			projectVersion: String.fromCharCode(8230),
-			projectTime: String.fromCharCode(8230)
+			projectTime: String.fromCharCode(8230),
 		};
+		this.windowsPositioningMode = 1;
+		this.innerWidth = window.innerWidth;
+		this.innerHeight = window.innerHeight;
 
 		this.changeLang = this.changeLang.bind(this);
 		this.positionWindows = this.positionWindows.bind(this);
 		this.bringFront = this.bringFront.bind(this);
+		this.printPage = this.printPage.bind(this);
+		this.onResize = this.onResize.bind(this);
+
+		window.addEventListener('resize', this.onResize );
 	}
 
-	positionWindows( mode ) {
+	printPage() {
+		window.print();		
+	}
+
+	positionWindows( mode=null ) {
 		if( this.state.data === null || !('charts' in this.state.data) || this.state.data.charts.length === 0 ) {
 			return;
+		}
+		if( mode !== null ) {
+			this.windowsPositioningMode = mode;
+		} else {
+			mode = this.windowsPositioningMode;
 		}
 		let l = this.state.data.charts.length;
 		let coords = new Array(l);
 		for( let i = 0 ; i < l ; i++ ) {
 			coords[i] = {};
 		} 
-		if( mode == 1 ) {
-			calcChartWindowsCoords( this.state.data.charts, coords );
+		if( this.windowsPositioningMode === 1 && !(this.innerWidth < Settings.lowResolutionWindowWidth) ) { 
+			calcChartWindowsCoords( this.state.data.charts, coords, this.innerWidth, this.innerHeight );
 		} else {
-			tileChartWindowsCoords( this.state.data.charts, coords );
+			tileChartWindowsCoords( this.state.data.charts, coords, this.innerWidth, this.innerHeight );
 		}
 		let z = new Array(l);
 		for( let i = 0 ; i < l ; i++ ) {
@@ -61,35 +77,36 @@ class App extends React.Component {
 		}
 	}
 
-	bringFront(zIndex) {
+	bringFront(indexOfClicked) {
 		let l = this.state.childZIndexes.length;
 		let z = new Array(l);
-		let indexOfClicked = -1;
-		let indexOfMax = 0;
+		let indexOfMaxZ = 0;
 		for( let i = 0 ; i < l ; i++ ) {
 			z[i] = this.state.childZIndexes[i];
-			if( i > 0 && z[i] > z[indexOfMax] ) {	
-				indexOfMax = i;
-			}
-			if( z[i] == zIndex ) {
-				indexOfClicked = i;
+			if( i > 0 && z[i] > z[indexOfMaxZ] ) {	
+				indexOfMaxZ = i;
 			}
 		}
-		if( indexOfClicked == -1 || indexOfClicked == indexOfMax ) {
+		if( indexOfClicked == indexOfMaxZ )
 			return;
-		}
-		let zIndexMax = z[indexOfMax];
-		z[indexOfMax] = zIndex;
-		z[indexOfClicked] = zIndexMax;
-						
+		let zOfClicked = z[indexOfClicked];
+		z[indexOfClicked] = z[indexOfMaxZ];						
 		for( let i = 0 ; i < l ; i++ ) {
-			if( i != indexOfClicked && z[i] > zIndex ) {
+			if( i != indexOfClicked && z[i] > zOfClicked )
 				z[i]--;
-			}
 		}
 		this.setState( { childZIndexes:z } );
 	}
 
+	onResize(e) {
+		var resizeTimer = null;
+		if(resizeTimer) clearTimeout(resizeTimer);
+		resizeTimer = setTimeout( function() {
+			this.innerWidth = window.innerWidth;
+			this.innerHeight = window.innerHeight;
+			this.positionWindows();
+			}.bind(this), 100 );
+	}	  
 
 	componentDidMount() {
 		let lang = getCookie('lang');
@@ -99,21 +116,21 @@ class App extends React.Component {
 		
 		fetch(Settings.htmlDirectory + Settings.dataFile).then(data=> data.json()).then( 
 			(data) => { 
-				//let sourceData = getFakeData();
-				data = convertSourceData(data);
+				data = convertSourceData(data);		
 				this.setState({ lang: data.lang, title: data.title, projectVersion: data.projectVersion, 
 					projectTime: data.projectTime, 
 					userName: (typeof(_userName) !== 'undefined') ? _userName : '?' });
-		
-				if( data === null ) {
-					this.setState( { data: { 'error': Settings.failedToLoadText[this.state.lang] } } );
+				
+				document.title=data.title; // Setting window title
+				
+				if( !('charts' in data) ) {
+					this.setState( { data: { 'error': Settings.noDataText[data.lang] } } );
 					return;
 				}
-				if( !('charts' in data) || data.charts.length === 0 ) {
-					this.setState( { data: { 'error': Settings.failedToParseText[this.state.lang] } } );
+				if( data.charts.length === 0 ) {
+					this.setState( { data: { 'error': Settings.noDataText[data.lang] } } );
 					return;
 				}
-		
 				let z = [];
 				let r = [];
 				for( let i = 0 ; i < data.charts.length ; i++ ) {
@@ -123,16 +140,25 @@ class App extends React.Component {
 				this.setState( { data: data, childZIndexes: z, childRefs: r } );
 		
 			} 
-		).catch( function(e) { alert(e); } );
+		).catch(
+			function(e) { 
+				this.setState( { data: { 'error': Settings.failedToLoadText[this.state.lang] } } );
+				return;
+			}.bind(this)
+		);
 	}
 
-	render() {		
+	render() {				
 		var header = (		
 			<div className={styles.headerContainer}>
 				<div className={styles.headerControls}>
 					<span onClick={this.changeLang}>{ Settings.lang[ this.state.lang ] }</span>
-					<span onClick={ (e) => this.positionWindows(1) }>{ String.fromCharCode(8634) }</span>
-					<span onClick={ (e) => this.positionWindows(2) }>{ String.fromCharCode(9783) }</span>
+					<span style={ { display:(this.innerWidth < Settings.lowResolutionWindowWidth) ? 'none':'inline' } }
+						onClick={ (e) => this.positionWindows(1) }>{ String.fromCharCode(8634) }</span>
+					<span style={ { display:(this.innerWidth < Settings.lowResolutionWindowWidth) ? 'none':'inline' } }
+						onClick={ (e) => this.positionWindows(2) }>{ String.fromCharCode(9783) }</span>
+					<span style={ { display:(this.innerWidth < Settings.lowResolutionWindowWidth) ? 'none':'inline', fontVariant:'small-caps' } }
+						onClick={ (e) => this.printPage() }>P</span>
 				</div>
 				<div className={styles.headerTitle}>
 					{ this.state.title }
@@ -146,12 +172,11 @@ class App extends React.Component {
 		);
 
 		let data = this.state.data;
-		if( data === null || 'error' in data ) {
-			let errorMessage = (data===null) ? Settings.waitLoadingText[this.state.lang] : data.error;
+		if( 'error' in data ) {
 			return( 
 				<div className={styles.appContainer}>
 					{header}
-					<div className={styles.waitContainer}>{errorMessage}</div>
+					<div className={styles.waitContainer}>{data.error}</div>
 				</div> );
 		}
 
@@ -163,15 +188,18 @@ class App extends React.Component {
 				for( let i = 0 ; i < nCharts ; i++ ) {
 					coords[i] = {};
 				}
-				//tileChartWindowsCoords( data.charts, coords );
-				calcChartWindowsCoords( data.charts, coords );
+				if( this.windowsPositioningMode === 1 && !(this.innerWidth < Settings.lowResolutionWindowWidth) ) { 
+					calcChartWindowsCoords( data.charts, coords, this.innerWidth, this.innerHeight );
+				} else {
+					tileChartWindowsCoords( data.charts, coords, this.innerWidth, this.innerHeight );
+				}
 
 				for( let i = 0 ; i < nCharts ; i++ ) {
 					if( 'error' in coords[i] ) {
 						continue;
 					}
 					charts.push( <DWindow key={'chart.window.'+i} ref={this.state.childRefs[i]} 
-						zIndex={this.state.childZIndexes[i]} bringFront={this.bringFront}  
+						index={i} zIndex={this.state.childZIndexes[i]} bringFront={this.bringFront}  
 						x={coords[i].x} y={coords[i].y} width={coords[i].width} height={coords[i].height} chart={data.charts[i]} /> );		
 				}
 				return (
@@ -183,7 +211,7 @@ class App extends React.Component {
 					</div>
 				);
 			} catch(e) {
-				;
+				; //console.log(e);
 			}
 		}
 		return( 

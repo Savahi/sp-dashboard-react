@@ -1,16 +1,19 @@
 import Settings from './Settings';
 
 export function convertSourceData(sourceData) {
-	if( !'DashPages' in sourceData )
-		return null;
-
 	let data = {};
 	data.lang = sourceData.Lang;
 	data.title = sourceData.Project.Name;
 	data.projectVersion = sourceData.Project.Version;
-	data.projectTime = sourceData.Project.CurTime;
+	data.projectTime = secondsToDate(sourceData.Project.CurTime);
 	data.charts = [];
+	if( !('DashPages' in sourceData) ) {
+		return data;
+	}
 	for( let idashpage = 0 ; idashpage < sourceData.DashPages.length ; idashpage++ ) {
+		if( !('DashItems' in sourceData.DashPages[idashpage]) ) {
+			continue;
+		}
 		let dashitems = sourceData.DashPages[idashpage].DashItems;	
 		for( let idashitem = 0 ; idashitem < dashitems.length ; idashitem++ ) {		
 			let chartsSettings = {};
@@ -26,7 +29,8 @@ export function convertSourceData(sourceData) {
 					let yAxisKey = 'value';
 					chartsSettings = { id: idashpage*100+idashitem, page:idashpage, type: 'linePlot', title: d.Title, 
 						startYAtZero: ( typeof(d.FromZero) !== 'undefined' && d.FromZero == 'yes') ? true : false,
-						lineType: (d.Graphs.length > 1) ? 'stepAfter' : undefined, 
+						lineType: (d.Form === 'bar' && d.Graphs.length > 1) ? 'stepAfter' : undefined, 
+						referenceLine: sourceData.Project.CurTime,
 						xAxisKey: xAxisKey, yAxisKey:yAxisKey, 
 						xAxisType: ( typeof(d.XType) !== 'undefined') ? d.XType : 'date', 
 						decimalPlacesAfterDotAtAxis: (typeof(d.Decimals) !== 'undefined') ? d.Decimals : undefined,
@@ -52,6 +56,7 @@ export function convertSourceData(sourceData) {
 					chartsSettings = { id: idashpage*100+idashitem, page:idashpage, type: 'areaChart', title: d.Title, 
 					startYAtZero: ( typeof(d.FromZero) !== 'undefined' && d.FromZero == 'yes') ? true : false, 
 						areaType: 'stepAfter', 
+						referenceLine: sourceData.Project.CurTime,
 						xAxisKey: xAxisKey, xAxisType: ( typeof(d.XType) !== 'undefined') ? d.XType : 'date', 
 						decimalPlacesAfterDotAtAxis: (typeof(d.Decimals) !== 'undefined') ? d.Decimals : undefined,
 						xPct: d.Position[0], yPct: d.Position[1], 
@@ -246,19 +251,22 @@ export function calculateYDomain( dataSource, marginFactor=0.1, excludeKey='name
 };
 
 
+var _windowInnerWidth = window.innerWidth;
+var _windowInnerHeight = window.innerHeight;
+
 const _pctToWindowTopMargin = 0;
-const _pctToWindowBottomMargin = 62;
+const _pctToWindowBottomMargin = Settings.windowTitleHeight + Settings.windowScrollBarWidth+9;
 const _pctToWindowLeftMargin = 0;
-const _pctToWindowRightMargin = 28;
+const _pctToWindowRightMargin = Settings.windowScrollBarWidth+9;
 
 export function	pctToWindowX( xPct ) {
 	return _pctToWindowLeftMargin + 
-		Math.floor( (window.innerWidth - _pctToWindowLeftMargin - _pctToWindowRightMargin) * xPct / 100.0);
+		Math.floor( (_windowInnerWidth - _pctToWindowLeftMargin - _pctToWindowRightMargin - 1) * xPct / 100.0);
 }
 
 export function	pctToWindowY( yPct ) {
 	return _pctToWindowTopMargin + 
-		Math.floor( (window.innerHeight - _pctToWindowTopMargin - _pctToWindowBottomMargin) * yPct / 100.0);
+		Math.floor( (_windowInnerHeight - _pctToWindowTopMargin - _pctToWindowBottomMargin - 1) * yPct / 100.0);
 }
 
 
@@ -276,13 +284,30 @@ function calcMaxPageNumberHelper(charts) {
 	return maxPageNumber;
 }
 
-export function	tileChartWindowsCoords( charts, coords ) {
-	let maxPageNumber = calcMaxPageNumberHelper(charts);
-	for( let i = 0 ; i <= maxPageNumber ; i++ ) {
-		tileChartWindowsCoordsHelper( charts, coords, i );
+
+export function zoomChartWindowsCoordsHelper( charts, coords ) {
+	for( let i = 0 ; i < charts.length ; i++ ) {
+		coords[i].x = pctToWindowX( 0 );
+		coords[i].y = pctToWindowY( 100 * i );
+		coords[i].width = pctToWindowX( 100 );
+		coords[i].height = pctToWindowY( 100 );
 	}
 }
 
+export function	tileChartWindowsCoords( charts, coords, wiw=null, wih=null ) {
+	if( wiw !== null && wih !== null ) {
+		_windowInnerWidth = wiw;
+		_windowInnerHeight = wih;		
+	}
+	if( _windowInnerWidth < Settings.lowResolutionWindowWidth ) {
+		zoomChartWindowsCoordsHelper( charts, coords);		
+	} else {
+		let maxPageNumber = calcMaxPageNumberHelper(charts);
+		for( let i = 0 ; i <= maxPageNumber ; i++ ) {
+			tileChartWindowsCoordsHelper( charts, coords, i );
+		}
+	}
+}
 
 function tileChartWindowsCoordsHelper( charts, coords, pageNumber=null ) {
 	if( pageNumber === null )
@@ -338,7 +363,11 @@ function tileChartWindowsCoordsHelper( charts, coords, pageNumber=null ) {
 	}
 }
 
-export function	calcChartWindowsCoords( charts, coords ) {
+export function	calcChartWindowsCoords( charts, coords, wiw=null, wih=null ) {
+	if( wiw !== null && wih !== null ) {
+		_windowInnerWidth = wiw;
+		_windowInnerHeight = wih;		
+	}
 	let l = charts.length;
 	if( l === 0 ) {
 		return;
@@ -443,5 +472,14 @@ export function secondsToDate( seconds ) {
 	if( day < 10 ) {
 		day = '0' + day;
 	}
-	return day + '-' + month + '-' + year;
+	let hours = date.getHours();
+	if( hours < 10 ) {
+		hours = "0" + hours;
+	}
+	let minutes = date.getMinutes();
+	if( minutes < 10 ) {
+		minutes = "0" + minutes;
+	}
+
+	return day + '.' + month + '.' + year + ' ' + hours + ":" +  minutes;
 }

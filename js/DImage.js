@@ -19,7 +19,7 @@ class DImage extends React.Component {
 			left:0, top: Settings.windowTitleHeight+'px' };
 		let url = window.location.href + "/" + Settings.filesDirectory + this.props.image.fileName;
 		return (
-				<img src={url} style={imgStyle} />
+				<img src={url} style={imgStyle} draggable={false} />
 		);
 	}
 }

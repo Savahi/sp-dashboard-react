@@ -1,6 +1,6 @@
 ﻿	{
 		"Lang": "ru",
-		"Project": {"Code": "cpc", "Version": 1, "Name": "Caspian Pipeline Construction", "CurTime": "10.10.99  08:00"},
+		"Project": {"Code": "cpc", "Version": 1, "Name": "Caspian Pipeline Construction", "CurTime": "1583222400"},
 		"DashPages": 
 		[
 			{
@@ -41,7 +41,7 @@
 				  	},
 				  	{
 					"Type": "diagram", "SubType": "pie",
-					"Position": [30, 50, 60, 100], "Title": "Resources Quantity",
+					"Position": [30, 50, 60, 100], "Title": "Resources Quantity: прокладка трубопровода, строительство, кровля, возведение зданий",
 					"Graphs": [
 					  {
 						"Array": [ 
@@ -73,7 +73,7 @@
 					{
 						"Type": "text",
 						"Position": [0, 0, 30, 50],
-						"Title": "Summary",
+						"Title": "Summary: прокладка трубопровода, строительство, кровля, возведение зданий",
 						"Body": "Это текст: прокладка трубопровода, строительство, кровля, возведение зданий и сооружений",
 						"FontFamily": "Arial", "FontSize": 20
 					},			  
